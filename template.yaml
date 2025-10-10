@@ -1,0 +1,242 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  weather-app
+
+  Sample SAM Template for weather-app
+
+Globals:
+  Function:
+    Timeout: 3
+    Layers:
+      - !Ref WeatherAppCommonLayer
+  Api:
+    OpenApiVersion: 3.0.2
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+
+Resources:
+  ################################
+  # API Gateway
+  ################################  
+  WeatherAppServerlessRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub weather-app-api-${Environment}
+      StageName: !Ref Environment
+  ################################
+  # S3
+  ################################
+  WeatherAppAnalyzeDataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub weather-data-oinuma-${Environment}
+  ################################
+  # Lambda Layer
+  ################################ 
+  WeatherAppCommonLayer:
+    Type: AWS::Serverless::LayerVersion
+    Metadata:
+      BuildMethod: python3.10
+    Properties:
+      LayerName: !Sub weather-app-common-${Environment}
+      ContentUri: lambdas/layers/common/
+      CompatibleRuntimes:
+        - python3.10
+      RetentionPolicy: Delete
+  ################################
+  # Lambda
+  ################################ 
+  WeatherAppGetCurrentWeatherScheduledFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub getWeatherData-${Environment}
+      CodeUri: lambdas/scheduled/get_current_weather/
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      Timeout: 60
+      Architectures:
+        - x86_64
+      Events:
+        HourlyTrigger:
+          Type: Schedule
+          Properties:
+            Schedule: cron(30 * * * ? *)
+            Name: !Sub FetchWeatherDataHourly-${Environment}
+            Description: "定期的に天気データを取得"
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref WeatherAppAnalyzeDataBucket
+          API_KEY: !Sub "{{resolve:ssm:/app/apikey}}"
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref WeatherAppAnalyzeDataBucket
+  
+  WeatherAppAnalyzeWeatherDailyScheduledFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub analyzeWeatherDataDaily-${Environment}
+      CodeUri: lambdas/scheduled/analyze_weather_daily/
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      Timeout: 60
+      Architectures:
+        - x86_64
+      Events:
+        DailyTrigger:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 15 * * ? *)
+            Name: !Sub AnalyzeWeatherDataDaily-${Environment}
+            Description: "定期的に天気データを分析"
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref WeatherAppAnalyzeDataBucket
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref WeatherAppAnalyzeDataBucket
+        - S3ReadPolicy:
+            BucketName: !Ref WeatherAppAnalyzeDataBucket
+  WeatherAppAnalyzeWeatherWeeklyScheduledFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub analyzeWeatherDataWeekly-${Environment}
+      CodeUri: lambdas/scheduled/analyze_weather_weekly/
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      Timeout: 60
+      Architectures:
+        - x86_64
+      Events:
+        WeeklyTrigger:
+          Type: Schedule
+          Properties:
+            Schedule: cron(15 15 ? * 1 *)
+            Name: !Sub AnalyzeWeatherDataWeekly-${Environment}
+            Description: "定期的に天気データを分析"
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref WeatherAppAnalyzeDataBucket
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref WeatherAppAnalyzeDataBucket
+        - S3ReadPolicy:
+            BucketName: !Ref WeatherAppAnalyzeDataBucket
+  WeatherAppGetCurrentWeatherApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub getCurrentWeatherApi-${Environment}
+      CodeUri: lambdas/api/get_current_weather/
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      Timeout: 60
+      Architectures:
+        - x86_64
+      Events:
+        GetCurrentWeather:
+          Type: Api
+          Properties:
+            Path: /api/weather/current
+            Method: GET
+            RestApiId: !Ref WeatherAppServerlessRestApi
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref WeatherAppAnalyzeDataBucket
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref WeatherAppAnalyzeDataBucket
+  WeatherAppGetWeatherSummaryDailyApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub getWeatherSummaryDailyApi-${Environment}
+      CodeUri: lambdas/api/get_weather_summary_daily
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      Timeout: 60
+      Architectures:
+        - x86_64
+      Events:
+        GetWeatherSummaryDaily:
+          Type: Api
+          Properties:
+            Path: /api/weather/summary/daily
+            Method: GET
+            RestApiId: !Ref WeatherAppServerlessRestApi
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref WeatherAppAnalyzeDataBucket
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref WeatherAppAnalyzeDataBucket
+  WeatherAppGetWeatherTimeseriesDailyApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub getWeatherTimeseriesDailyApi-${Environment}
+      CodeUri: lambdas/api/get_weather_timeseries_daily
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      Timeout: 60
+      Architectures:
+        - x86_64
+      Events:
+        GetWeatherTimeseriesDaily:
+          Type: Api
+          Properties:
+            Path: /api/weather/timeseries/daily
+            Method: GET
+            RestApiId: !Ref WeatherAppServerlessRestApi
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref WeatherAppAnalyzeDataBucket
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref WeatherAppAnalyzeDataBucket
+  WeatherAppGetWeatherSummaryWeeklyApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub getWeatherSummaryWeeklyApi-${Environment}
+      CodeUri: lambdas/api/get_weather_summary_weekly
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      Timeout: 60
+      Architectures:
+        - x86_64
+      Events:
+        GetWeatherSummaryWeekly:
+          Type: Api
+          Properties:
+            Path: /api/weather/summary/weekly
+            Method: GET
+            RestApiId: !Ref WeatherAppServerlessRestApi
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref WeatherAppAnalyzeDataBucket
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref WeatherAppAnalyzeDataBucket
+  WeatherAppGetWeatherTimeseriesWeeklyApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub getWeatherTimeseriesWeeklyApi-${Environment}
+      CodeUri: lambdas/api/get_weather_timeseries_weekly
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      Timeout: 60
+      Architectures:
+        - x86_64
+      Events:
+        GetWeatherTimeseriesWeekly:
+          Type: Api
+          Properties:
+            Path: /api/weather/timeseries/weekly
+            Method: GET
+            RestApiId: !Ref WeatherAppServerlessRestApi
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref WeatherAppAnalyzeDataBucket
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref WeatherAppAnalyzeDataBucket
