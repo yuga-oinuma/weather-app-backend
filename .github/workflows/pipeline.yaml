@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - 'main'
-      - 'feature**'
+      - 'develop'
   delete:
     branches:
       - 'feature**'
@@ -70,12 +70,12 @@ jobs:
             --region ${TESTING_REGION} \
             --no-prompts
 
-  build-and-deploy-feature:
+  build-and-deploy-develop:
     # this stage is triggered only for feature branches (feature*),
     # which will build the stack and deploy to a stack named with branch name.
     # https://github.com/actions/setup-python
     # https://github.com/aws-actions/configure-aws-credentials#notice-node12-deprecation-warning
-    if: startsWith(github.ref, 'refs/heads/feature')
+    if: github.ref == 'refs/heads/develop'
     needs: [test]
     runs-on: ubuntu-latest
     steps:
@@ -92,14 +92,14 @@ jobs:
           aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.TESTING_REGION }}
           role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
-          role-session-name: feature-deployment
+          role-session-name: develop-deployment
           role-duration-seconds: 3600
           role-skip-session-tagging: true
 
-      - name: Deploy to feature stack in the testing account
+      - name: Deploy to develop stack in the testing account
         shell: bash
         run: |
-          sam deploy --stack-name $(echo ${GITHUB_REF##*/} | tr -cd '[a-zA-Z0-9-]') \
+          sam deploy --stack-name ${TESTING_STACK_NAME} \
             --capabilities CAPABILITY_IAM \
             --region ${TESTING_REGION} \
             --s3-bucket ${TESTING_ARTIFACTS_BUCKET} \
