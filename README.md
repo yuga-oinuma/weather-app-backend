@@ -1,9 +1,5 @@
 # 気象データ比較アプリ（バックエンド）
 
-アプリ URL : [https://d3najlyap0uyr2.cloudfront.net](https://d3najlyap0uyr2.cloudfront.net)
-
-![アプリイメージ](./docs/app_image.png)
-
 ## 📌 概要
 
 このアプリは日本の主要都市の気象データを比較表示する Web アプリケーションです。  
@@ -29,4 +25,4 @@
 
 ## 🌤️ システム構成図
 
-![システム構成図](./docs/system_configuration_diagram.png)
+![システム構成図](./docs/architecture.png)
