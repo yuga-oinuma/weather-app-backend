@@ -17,7 +17,7 @@
 
 | 分類 | 技術要素  |
 | ------------ | ----------------------- |
-| 言語 | Python 3.13 |
+| 言語 | Python 3.10 |
 | フレームワーク | AWS SAM |
 | API | Amazon API Gateway, AWS Lambda |
 | バッチ処理 | Amazon EventBridge, AWS Lambda |
