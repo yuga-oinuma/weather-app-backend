@@ -8,7 +8,7 @@ from weather_common.s3_utils import fetch_s3_json
 
 s3 = boto3.client("s3")
 
-
+# 最新のweatherファイルを取得する
 def get_latest_weather_file(city, date, bucket_name):
     prefix = f"weather-data-oinuma/{city}/{date.strftime('%Y-%m-%d')}/"
     response = s3.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
