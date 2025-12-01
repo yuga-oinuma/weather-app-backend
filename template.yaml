@@ -64,7 +64,7 @@ Resources:
         HourlyTrigger:
           Type: Schedule
           Properties:
-            Schedule: cron(30 * * * ? *)
+            Schedule: cron(30 * * * ? *) # 毎時30分に実行
             Name: !Sub FetchWeatherDataHourly-${Environment}
             Description: "定期的に天気データを取得"
       Environment:
@@ -89,7 +89,7 @@ Resources:
         DailyTrigger:
           Type: Schedule
           Properties:
-            Schedule: cron(0 15 * * ? *)
+            Schedule: cron(0 15 * * ? *) # 毎日15:00に実行
             Name: !Sub AnalyzeWeatherDataDaily-${Environment}
             Description: "定期的に天気データを分析"
       Environment:
@@ -114,7 +114,7 @@ Resources:
         WeeklyTrigger:
           Type: Schedule
           Properties:
-            Schedule: cron(15 15 ? * 1 *)
+            Schedule: cron(15 15 ? * 1 *) # 毎週月曜日の15:15に実行
             Name: !Sub AnalyzeWeatherDataWeekly-${Environment}
             Description: "定期的に天気データを分析"
       Environment:
